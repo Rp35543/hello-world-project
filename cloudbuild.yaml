@@ -1,0 +1,20 @@
+steps:
+  - name: 'sonarsource/sonar-scanner-cli'
+    args:
+      - '-Dsonar.projectKey=hello-world-project'
+      - '-Dsonar.organization=my-org'
+      - '-Dsonar.host.url=https://sonarcloud.io'
+      - '-Dsonar.login=$(gcloud secrets versions access latest --secret=sonar-token)'
+
+  - name: 'gcr.io/cloud-builders/curl'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        STATUS=$(curl -s -u "$(gcloud secrets versions access latest --secret=sonar-token):" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=hello-world-project" | jq -r '.projectStatus.status')
+        if [[ "$STATUS" != "OK" ]]; then
+          echo "❌ SonarQube Quality Gate failed!"
+          exit 1
+        fi
+options:
+  logging: CLOUD_LOGGING_ONLY
